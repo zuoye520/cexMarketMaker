@@ -46,14 +46,11 @@ async function addColumnIfNotExists(tableName, columnName, columnDefinition) {
     console.log(`列 ${columnName} 已存在于表 ${tableName}`);
   }
 }
-
 async function initDatabase() {
-  // 创建 exchange_accounts 表
   await createTableIfNotExists('exchange_accounts', `
     CREATE TABLE exchange_accounts (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(50) NOT NULL UNIQUE,
-      exchange_os VARCHAR(50) NOT NULL,
       api_key VARCHAR(100) NOT NULL,
       api_secret VARCHAR(100) NOT NULL,
       rest_api_url VARCHAR(255) NOT NULL,
@@ -61,11 +58,6 @@ async function initDatabase() {
     )
   `);
 
-  // 如果表已存在，添加新列
-  await addColumnIfNotExists('exchange_accounts', 'rest_api_url', 'VARCHAR(255) NOT NULL');
-
-
-  // 创建 trading_pairs 表
   await createTableIfNotExists('trading_pairs', `
     CREATE TABLE trading_pairs (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -74,21 +66,40 @@ async function initDatabase() {
     )
   `);
 
-  // 创建 orders 表
-  await createTableIfNotExists('orders', `
-    CREATE TABLE orders (
+  await createTableIfNotExists('market_maker_bots', `
+    CREATE TABLE market_maker_bots (
       id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(50) NOT NULL UNIQUE,
+      account_id INT NOT NULL,
       trading_pair_id INT NOT NULL,
-      side ENUM('buy', 'sell') NOT NULL,
-      price DECIMAL(18, 8) NOT NULL,
-      amount DECIMAL(18, 8) NOT NULL,
-      status ENUM('open', 'closed') NOT NULL,
+      base_spread DECIMAL(5,4) NOT NULL,
+      base_order_size DECIMAL(18,8) NOT NULL,
+      min_profit DECIMAL(5,4) NOT NULL,
+      max_position DECIMAL(18,8) NOT NULL,
+      order_levels INT NOT NULL DEFAULT 5,
+      is_active BOOLEAN DEFAULT TRUE,
+      amount_precision INT NOT NULL DEFAULT 8,
+      price_precision INT NOT NULL DEFAULT 8,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
     )
   `);
 
-  // 创建 market_prices 表
+  await createTableIfNotExists('orders', `
+    CREATE TABLE orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      bot_id INT NOT NULL,
+      side ENUM('buy', 'sell') NOT NULL,
+      price DECIMAL(18, 8) NOT NULL,
+      amount DECIMAL(18, 8) NOT NULL,
+      status ENUM('open', 'filled', 'cancelled') NOT NULL,
+      exchange_order_id VARCHAR(100) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (bot_id) REFERENCES market_maker_bots(id)
+    )
+  `);
+
   await createTableIfNotExists('market_prices', `
     CREATE TABLE market_prices (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -99,46 +110,36 @@ async function initDatabase() {
     )
   `);
 
-  // 创建 market_maker_bots 表
-  await createTableIfNotExists('market_maker_bots', `
-    CREATE TABLE market_maker_bots (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(50) NOT NULL UNIQUE,
-      account_id INT NOT NULL,
-      trading_pair_id INT NOT NULL,
-      base_spread DECIMAL(5,4) NOT NULL,
-      order_size DECIMAL(18,8) NOT NULL,
-      min_profit DECIMAL(5,4) NOT NULL,
-      max_inventory DECIMAL(18,8) NOT NULL,
-      is_active BOOLEAN DEFAULT TRUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
-      FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
-    )
-  `);
-
   console.log('数据库初始化完成');
 }
 
-async function getOpenOrders(tradingPairId, side) {
+async function getOpenOrders(botId) {
   const [rows] = await pool.query(
-    'SELECT * FROM orders WHERE trading_pair_id = ? AND side = ? AND status = "open"',
-    [tradingPairId, side]
+    'SELECT * FROM orders WHERE bot_id = ? AND status = "open"',
+    [botId]
   );
   return rows;
 }
 
+async function getOrderById(orderId) {
+  const [rows] = await pool.query(
+    'SELECT * FROM orders WHERE id = ?',
+    [orderId]
+  );
+  return rows[0];
+}
+
 async function closeOrder(orderId) {
   await pool.query(
-    'UPDATE orders SET status = "closed" WHERE id = ?',
+    'UPDATE orders SET status = "cancelled" WHERE id = ?',
     [orderId]
   );
 }
 
-async function insertOrder(tradingPairId, side, price, amount) {
+async function insertOrder(botId, side, price, amount, exchangeOrderId) {
   await pool.query(
-    'INSERT INTO orders (trading_pair_id, side, price, amount, status) VALUES (?, ?, ?, ?, "open")',
-    [tradingPairId, side, price, amount]
+    'INSERT INTO orders (bot_id, side, price, amount, status, exchange_order_id) VALUES (?, ?, ?, ?, "open", ?)',
+    [botId, side, price, amount, exchangeOrderId]
   );
 }
 
@@ -159,7 +160,7 @@ async function insertMarketPrice(tradingPairId, price) {
 
 async function getActiveBots() {
   const [rows] = await pool.query(`
-    SELECT b.*, a.exchange_os, a.api_key, a.api_secret, a.rest_api_url, t.pair
+    SELECT b.*, a.name as os_name,a.api_key, a.api_secret, a.rest_api_url, t.pair
     FROM market_maker_bots b
     JOIN exchange_accounts a ON b.account_id = a.id
     JOIN trading_pairs t ON b.trading_pair_id = t.id
@@ -170,7 +171,7 @@ async function getActiveBots() {
 
 async function getBotById(botId) {
   const [rows] = await pool.query(`
-    SELECT b.*, a.exchange_os, a.api_key, a.api_secret, a.rest_api_url, t.pair
+    SELECT b.*, a.api_key, a.api_secret, a.rest_api_url, t.pair
     FROM market_maker_bots b
     JOIN exchange_accounts a ON b.account_id = a.id
     JOIN trading_pairs t ON b.trading_pair_id = t.id
@@ -183,15 +184,31 @@ async function updateBotConfig(botId, config) {
   await pool.query(`
     UPDATE market_maker_bots
     SET base_spread = ?,
-        order_size = ?,
+        base_order_size = ?,
         min_profit = ?,
-        max_inventory = ?,
+        max_position = ?,
+        order_levels = ?,
         is_active = ?
     WHERE id = ?
-  `, [config.base_spread, config.order_size, config.min_profit, config.max_inventory, config.is_active, botId]);
+  `, [config.base_spread, config.base_order_size, config.min_profit, config.max_position, config.order_levels, config.is_active, botId]);
+}
+
+async function updateOrderStatus(orderId, status, filledAmount = null, averagePrice = null) {
+  if (filledAmount !== null && averagePrice !== null) {
+    await pool.query(
+      'UPDATE orders SET status = ?, amount = ?, price = ? WHERE id = ?',
+      [status, filledAmount, averagePrice, orderId]
+    );
+  } else {
+    await pool.query(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      [status, orderId]
+    );
+  }
 }
 
 module.exports = {
+  pool,
   initDatabase,
   getOpenOrders,
   closeOrder,
@@ -200,5 +217,7 @@ module.exports = {
   insertMarketPrice,
   getActiveBots,
   getBotById,
-  updateBotConfig
+  getOrderById,
+  updateBotConfig,
+  updateOrderStatus
 };
