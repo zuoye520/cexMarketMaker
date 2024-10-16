@@ -40,7 +40,7 @@
    ```
    node index.js
    ```
-
+pm2 start index.js --name cexMarketMaker
 ## 使用说明
 
 1. 在数据库中添加交易所账户信息（使用 `exchange_accounts` 表）。
