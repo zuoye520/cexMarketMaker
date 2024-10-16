@@ -49,12 +49,23 @@ async function calculateVolatility(tradingPairId) {
  * @returns {Object} 买单和卖单的价格水平
  */
 function calculateLevels(bot, marketPrice, dynamicSpread) {
-  const {base_order_size:baseOrderSize,order_levels:orderLevels,amount_precision:amountPrecision,price_precision:pricePrecision}=bot
+  const {
+    base_order_size:baseOrderSize,
+    order_levels:orderLevels,
+    amount_precision:amountPrecision,
+    price_precision:pricePrecision,
+    min_multiplier:minMultiplier,
+    max_multiplier:maxMultiplier,
+    spread_increment:spreadIncrement
+  }=bot
   console.log('calculateLevels:',{baseOrderSize,orderLevels,amountPrecision,pricePrecision})
   const levels = [];
   for (let i = 0; i < orderLevels; i++) {
-    const spreadMultiplier = 1 + i * 0.5; // 随着档位增加，价差逐渐增大
-    const sizeMultiplier = 1 - i * 0.1; // 随着档位增加，订单大小逐渐减小
+    const spreadMultiplier = 1 + i * spreadIncrement; // 随着档位增加，价差逐渐增大
+    // const sizeMultiplier = 1 - i * 0.1; // 随着档位增加，订单大小逐渐减小
+    // 使用随机范围调整订单大小，不考虑档位
+    
+    const sizeMultiplier = minMultiplier + Math.random() * (maxMultiplier - minMultiplier);
 
     const buyPrice = (marketPrice * (1 - dynamicSpread * spreadMultiplier)).toFixed(pricePrecision);
     const sellPrice = (marketPrice * (1 + dynamicSpread * spreadMultiplier)).toFixed(pricePrecision);
@@ -104,14 +115,19 @@ async function checkAndUpdateOrderStatus(bot, exchangeAPI) {
  * @param {Array} openOrders - 当前未成交订单数组
  */
 async function updateSideOrders(bot, exchangeAPI, side, levels, openOrders) {
+  const {
+    min_multiplier:minMultiplier,
+    max_multiplier:maxMultiplier
+  }=bot
   for (const level of levels) {
     //查找现有的未成交订单中是否有与当前价格水平相近的订单
     const existingOrder = openOrders.find(o => o.side === side && Math.abs(o.price - level.price) / level.price < bot.min_profit);
     console.log('existingOrder:',existingOrder)
     if (existingOrder) {
       console.log('存在当前价格水平相近的订单')
-      if (Math.abs(existingOrder.amount - level.amount) / level.amount > 0.1) { // 如果数量差异超过10%
-        console.log('数量差异超过10%')
+      const threshold = (maxMultiplier - minMultiplier) / 2; // 在这个例子中是 (1.5 - 0.8) / 2 = 0.35
+      if (Math.abs(existingOrder.amount - level.amount) / level.amount > threshold) { // 如果数量差异超过百分比
+        console.log('数量差异超过百分比%')
         //查询该订单状态是否已经取消
         const {status} = await db.getOrderById(existingOrder.id);
         console.log('status',status)

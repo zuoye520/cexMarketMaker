@@ -80,6 +80,9 @@ async function initDatabase() {
       is_active BOOLEAN DEFAULT TRUE,
       amount_precision INT NOT NULL DEFAULT 8,
       price_precision INT NOT NULL DEFAULT 8,
+      min_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+      max_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+      spread_increment DECIMAL(3,2) NOT NULL DEFAULT 0.50,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
@@ -96,6 +99,7 @@ async function initDatabase() {
       status ENUM('open', 'filled', 'cancelled') NOT NULL,
       exchange_order_id VARCHAR(100) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (bot_id) REFERENCES market_maker_bots(id)
     )
   `);
