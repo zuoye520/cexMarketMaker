@@ -46,72 +46,73 @@ async function addColumnIfNotExists(tableName, columnName, columnDefinition) {
     console.log(`列 ${columnName} 已存在于表 ${tableName}`);
   }
 }
+
 async function initDatabase() {
   await createTableIfNotExists('exchange_accounts', `
     CREATE TABLE exchange_accounts (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(50) NOT NULL UNIQUE,
-      api_key VARCHAR(100) NOT NULL,
-      api_secret VARCHAR(100) NOT NULL,
-      rest_api_url VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
+      id INT AUTO_INCREMENT PRIMARY KEY COMMENT '交易所账户ID',
+      name VARCHAR(50) NOT NULL UNIQUE COMMENT '交易所名称',
+      api_key VARCHAR(100) NOT NULL COMMENT 'API密钥',
+      api_secret VARCHAR(100) NOT NULL COMMENT 'API密钥',
+      rest_api_url VARCHAR(255) NOT NULL COMMENT 'REST API URL',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+    ) COMMENT '交易所账户表'
   `);
 
   await createTableIfNotExists('trading_pairs', `
     CREATE TABLE trading_pairs (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      pair VARCHAR(20) NOT NULL UNIQUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
+      id INT AUTO_INCREMENT PRIMARY KEY COMMENT '交易对ID',
+      pair VARCHAR(20) NOT NULL UNIQUE COMMENT '交易对名称',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+    ) COMMENT '交易对表'
   `);
 
   await createTableIfNotExists('market_maker_bots', `
     CREATE TABLE market_maker_bots (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(50) NOT NULL UNIQUE,
-      account_id INT NOT NULL,
-      trading_pair_id INT NOT NULL,
-      base_spread DECIMAL(5,4) NOT NULL,
-      base_order_size DECIMAL(18,8) NOT NULL,
-      min_profit DECIMAL(5,4) NOT NULL,
-      max_position DECIMAL(18,8) NOT NULL,
-      order_levels INT NOT NULL DEFAULT 5,
-      is_active BOOLEAN DEFAULT TRUE,
-      amount_precision INT NOT NULL DEFAULT 8,
-      price_precision INT NOT NULL DEFAULT 8,
-      min_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
-      max_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
-      spread_increment DECIMAL(3,2) NOT NULL DEFAULT 0.50,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      id INT AUTO_INCREMENT PRIMARY KEY COMMENT '做市商机器人ID',
+      name VARCHAR(50) NOT NULL UNIQUE COMMENT '机器人名称',
+      account_id INT NOT NULL COMMENT '关联的交易所账户ID',
+      trading_pair_id INT NOT NULL COMMENT '关联的交易对ID',
+      base_spread DECIMAL(5,4) NOT NULL COMMENT '基础价差',
+      base_order_size DECIMAL(18,8) NOT NULL COMMENT '基础订单大小',
+      min_profit DECIMAL(5,4) NOT NULL COMMENT '最小利润',
+      max_position DECIMAL(18,8) NOT NULL COMMENT '最大持仓量',
+      order_levels INT NOT NULL DEFAULT 5 COMMENT '订单档位数量',
+      is_active BOOLEAN DEFAULT TRUE COMMENT '是否激活',
+      amount_precision INT NOT NULL DEFAULT 8 COMMENT '数量精度',
+      price_precision INT NOT NULL DEFAULT 8 COMMENT '价格精度',
+      min_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00 COMMENT '最小乘数',
+      max_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00 COMMENT '最大乘数',
+      spread_increment DECIMAL(3,2) NOT NULL DEFAULT 0.50 COMMENT '价差增量',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
-    )
+    ) COMMENT '做市商机器人表'
   `);
 
   await createTableIfNotExists('orders', `
     CREATE TABLE orders (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      bot_id INT NOT NULL,
-      side ENUM('buy', 'sell') NOT NULL,
-      price DECIMAL(18, 8) NOT NULL,
-      amount DECIMAL(18, 8) NOT NULL,
-      status ENUM('open', 'filled', 'cancelled') NOT NULL,
-      exchange_order_id VARCHAR(100) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      id INT AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
+      bot_id INT NOT NULL COMMENT '关联的机器人ID',
+      side ENUM('buy', 'sell') NOT NULL COMMENT '订单方向',
+      price DECIMAL(18, 8) NOT NULL COMMENT '订单价格',
+      amount DECIMAL(18, 8) NOT NULL COMMENT '订单数量',
+      status ENUM('open', 'filled', 'cancelled') NOT NULL COMMENT '订单状态',
+      exchange_order_id VARCHAR(100) NOT NULL COMMENT '交易所订单ID',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       FOREIGN KEY (bot_id) REFERENCES market_maker_bots(id)
-    )
+    ) COMMENT '订单表'
   `);
 
   await createTableIfNotExists('market_prices', `
     CREATE TABLE market_prices (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      trading_pair_id INT NOT NULL,
-      price DECIMAL(18, 8) NOT NULL,
-      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      id INT AUTO_INCREMENT PRIMARY KEY COMMENT '市场价格ID',
+      trading_pair_id INT NOT NULL COMMENT '关联的交易对ID',
+      price DECIMAL(18, 8) NOT NULL COMMENT '市场价格',
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间',
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
-    )
+    ) COMMENT '市场价格表'
   `);
 
   console.log('数据库初始化完成');

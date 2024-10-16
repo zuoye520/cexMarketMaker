@@ -65,8 +65,8 @@ function calculateLevels(bot, marketPrice, dynamicSpread) {
     // const sizeMultiplier = 1 - i * 0.1; // 随着档位增加，订单大小逐渐减小
     // 使用随机范围调整订单大小，不考虑档位
     
-    const sizeMultiplier = minMultiplier + Math.random() * (maxMultiplier - minMultiplier);
-
+    const sizeMultiplier = minMultiplier*1 + Math.random() * (maxMultiplier - minMultiplier);
+    console.log('sizeMultiplier:',{sizeMultiplier,maxMultiplier,minMultiplier})
     const buyPrice = (marketPrice * (1 - dynamicSpread * spreadMultiplier)).toFixed(pricePrecision);
     const sellPrice = (marketPrice * (1 + dynamicSpread * spreadMultiplier)).toFixed(pricePrecision);
     const orderSize = (baseOrderSize * sizeMultiplier).toFixed(amountPrecision);
