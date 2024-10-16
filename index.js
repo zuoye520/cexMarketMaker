@@ -3,7 +3,7 @@ require('dotenv').config();
 const ExchangeAPI = require('./exchangeApi');
 
 // 更新订单的时间间隔（毫秒）
-const UPDATE_INTERVAL = 1000*20; // 10秒
+const UPDATE_INTERVAL = 1000*10; // 10秒
 
 // 添加一个标志来跟踪任务是否正在运行
 let isUpdating = false;
