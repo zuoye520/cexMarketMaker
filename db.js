@@ -53,11 +53,17 @@ async function initDatabase() {
     CREATE TABLE exchange_accounts (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(50) NOT NULL UNIQUE,
+      exchange_os VARCHAR(50) NOT NULL,
       api_key VARCHAR(100) NOT NULL,
       api_secret VARCHAR(100) NOT NULL,
+      rest_api_url VARCHAR(255) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // 如果表已存在，添加新列
+  await addColumnIfNotExists('exchange_accounts', 'rest_api_url', 'VARCHAR(255) NOT NULL');
+
 
   // 创建 trading_pairs 表
   await createTableIfNotExists('trading_pairs', `
@@ -153,7 +159,7 @@ async function insertMarketPrice(tradingPairId, price) {
 
 async function getActiveBots() {
   const [rows] = await pool.query(`
-    SELECT b.*, a.api_key, a.api_secret, t.pair
+    SELECT b.*, a.exchange_os, a.api_key, a.api_secret, a.rest_api_url, t.pair
     FROM market_maker_bots b
     JOIN exchange_accounts a ON b.account_id = a.id
     JOIN trading_pairs t ON b.trading_pair_id = t.id
@@ -164,7 +170,7 @@ async function getActiveBots() {
 
 async function getBotById(botId) {
   const [rows] = await pool.query(`
-    SELECT b.*, a.api_key, a.api_secret, t.pair
+    SELECT b.*, a.exchange_os, a.api_key, a.api_secret, a.rest_api_url, t.pair
     FROM market_maker_bots b
     JOIN exchange_accounts a ON b.account_id = a.id
     JOIN trading_pairs t ON b.trading_pair_id = t.id
