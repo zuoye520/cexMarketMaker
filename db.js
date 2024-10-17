@@ -51,7 +51,7 @@ async function initDatabase() {
   await createTableIfNotExists('exchange_accounts', `
     CREATE TABLE exchange_accounts (
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT '交易所账户ID',
-      name VARCHAR(50) NOT NULL UNIQUE COMMENT '交易所名称',
+      name VARCHAR(50) NOT NULL COMMENT '交易所名称',
       api_key VARCHAR(100) NOT NULL COMMENT 'API密钥',
       api_secret VARCHAR(100) NOT NULL COMMENT 'API密钥',
       rest_api_url VARCHAR(255) NOT NULL COMMENT 'REST API URL',

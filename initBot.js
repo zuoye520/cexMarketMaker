@@ -18,7 +18,7 @@ async function initLBKUSDTBot() {
     // 插入交易所账户
     const [accountResult] = await db.pool.query(
       'INSERT INTO exchange_accounts (name, api_key, api_secret, rest_api_url) VALUES (?, ?, ?, ?)',
-      ['lbank', '760d4d53-a18e-434a-9f1d-2ce43ccb57bf', 'C6D1E4BF0DB63A336FBEE899A2916B9C', 'http://103.153.101.112:1173']
+      ['lbank', '1', '1', 'http://103.153.101.112:1173']
     );
     const accountId = accountResult.insertId;
 
