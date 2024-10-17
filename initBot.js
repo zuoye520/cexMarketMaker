@@ -1,16 +1,7 @@
 const db = require('./db');
 require('dotenv').config();
 
-// 初始化数据库（如果还没有初始化的话）。
-// 在 exchange_accounts 表中插入 LBank 的账户信息。
-// 在 trading_pairs 表中插入 BTC_USDT 交易对。
-// 在 market_maker_bots 表中插入一个新的机器人配置，使用以下参数：
-// 基础价差 (base_spread): 0.1% (0.001)
-// 基础订单大小 (base_order_size): 10 LBK
-// 最小利润 (min_profit): 0.1% (0.001)
-// 最大持仓 (max_position): 0.1 BTC
-// 订单档位 (order_levels): 5
-// 是否激活 (is_active): true
+
 async function initLBKUSDTBot() {
   try {
     await db.initDatabase();
@@ -30,6 +21,16 @@ async function initLBKUSDTBot() {
     const tradingPairId = pairResult.insertId;
 
     // 插入机器人配置
+    // 初始化数据库（如果还没有初始化的话）。
+    // 在 exchange_accounts 表中插入 LBank 的账户信息。
+    // 在 trading_pairs 表中插入 BTC_USDT 交易对。
+    // 在 market_maker_bots 表中插入一个新的机器人配置，使用以下参数：
+    // 基础价差 (base_spread): 0.1% (0.001)
+    // 基础订单大小 (base_order_size): 10 LBK
+    // 最小利润 (min_profit): 0.1% (0.001)
+    // 最大持仓 (max_position): 0.1 BTC
+    // 订单档位 (order_levels): 5
+    // 是否激活 (is_active): true
     await db.pool.query(
       `INSERT INTO market_maker_bots 
       (name, account_id, trading_pair_id, base_spread, base_order_size, min_profit, max_position, order_levels, is_active, amount_precision, price_precision, min_multiplier, max_multiplier, spread_increment) 
