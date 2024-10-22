@@ -1,6 +1,6 @@
-const db = require('./db');
+const db = require('./utils/db');
 require('dotenv').config();
-const ExchangeAPI = require('./exchangeApi');
+const ExchangeAPI = require('./api/exchangeApi');
 
 // 更新订单的时间间隔（毫秒）
 const UPDATE_INTERVAL = 1000*10; // 10秒
@@ -231,4 +231,4 @@ async function start() {
   setInterval(updateAllBots, UPDATE_INTERVAL);
 }
 // 启动程序并捕获可能的错误
-start().catch(console.error);
+start().catch('start error:',console.error);
