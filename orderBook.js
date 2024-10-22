@@ -48,14 +48,14 @@ async function calculateVolatility(tradingPairId) {
  */
 function calculateLevels(bot, marketPrice, dynamicSpread) {
   const {
-    base_order_size:baseOrderSize,
-    order_levels:orderLevels,
-    amount_precision:amountPrecision,
-    price_precision:pricePrecision,
-    min_multiplier:minMultiplier,
-    max_multiplier:maxMultiplier,
-    spread_increment:spreadIncrement
-  }=bot
+    base_order_size: baseOrderSize,
+    order_levels: orderLevels,
+    amount_precision: amountPrecision,
+    price_precision: pricePrecision,
+    min_multiplier: minMultiplier,
+    max_multiplier: maxMultiplier,
+    spread_increment: spreadIncrement
+  } = bot.config;
   log.info('calculateLevels:',{baseOrderSize,orderLevels,amountPrecision,pricePrecision})
   const levels = [];
   for (let i = 0; i < orderLevels; i++) {
@@ -114,12 +114,13 @@ async function checkAndUpdateOrderStatus(bot, exchangeAPI) {
  */
 async function updateSideOrders(bot, exchangeAPI, side, levels, openOrders) {
   const {
-    min_multiplier:minMultiplier,
-    max_multiplier:maxMultiplier
-  }=bot
+    min_multiplier: minMultiplier,
+    max_multiplier: maxMultiplier,
+    min_profit: minProfit
+  } = bot.config;
   for (const level of levels) {
     //查找现有的未成交订单中是否有与当前价格水平相近的订单
-    const existingOrder = openOrders.find(o => o.side === side && Math.abs(o.price - level.price) / level.price < bot.min_profit);
+    const existingOrder = openOrders.find(o => o.side === side && Math.abs(o.price - level.price) / level.price < minProfit);
     log.info('existingOrder:',existingOrder)
     if (existingOrder) {
       log.info('存在当前价格水平相近的订单')
@@ -169,7 +170,7 @@ async function updateOrders(bot, exchangeAPI) {
 
     // 计算动态价差
     const volatility = await calculateVolatility(bot.trading_pair_id);
-    const dynamicSpread = calculateDynamicSpread(bot.base_spread, volatility);
+    const dynamicSpread = calculateDynamicSpread(bot.config.base_spread, volatility);
 
     // 计算新的价格水平
     const { buyLevels, sellLevels } = calculateLevels(

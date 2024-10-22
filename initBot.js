@@ -20,22 +20,25 @@ async function initLBKUSDTBot() {
     );
     const tradingPairId = pairResult.insertId;
 
+    // 创建配置对象
+    const config = {
+      base_spread: 0.001,      // 基础价差，表示买卖订单之间的最小价差百分比
+      base_order_size: 10,     // 基础订单大小，表示每个订单的基本数量
+      min_profit: 0.001,       // 最小利润，用于决定何时更新订单的阈值
+      max_position: 0.1,       // 最大持仓量，用于控制风险敞口
+      order_levels: 5,         // 订单档位数量，决定在每个方向上放置多少个订单
+      amount_precision: 0,     // 数量精度，用于控制订单数量的小数位数
+      price_precision: 6,      // 价格精度，用于控制订单价格的小数位数
+      min_multiplier: 0.80,    // 最小乘数，用于计算不同档位订单的大小
+      max_multiplier: 1.80,    // 最大乘数，用于计算不同档位订单的大小
+      spread_increment: 0.50   // 价差增量，用于计算不同档位订单的价差
+    };
     // 插入机器人配置
-    // 初始化数据库（如果还没有初始化的话）。
-    // 在 exchange_accounts 表中插入 LBank 的账户信息。
-    // 在 trading_pairs 表中插入 BTC_USDT 交易对。
-    // 在 market_maker_bots 表中插入一个新的机器人配置，使用以下参数：
-    // 基础价差 (base_spread): 0.1% (0.001)
-    // 基础订单大小 (base_order_size): 10 LBK
-    // 最小利润 (min_profit): 0.1% (0.001)
-    // 最大持仓 (max_position): 0.1 BTC
-    // 订单档位 (order_levels): 5
-    // 是否激活 (is_active): true
     await db.pool.query(
       `INSERT INTO market_maker_bots 
-      (name, account_id, trading_pair_id, base_spread, base_order_size, min_profit, max_position, order_levels, is_active, amount_precision, price_precision, min_multiplier, max_multiplier, spread_increment) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ['LBK_USDT_BOT', accountId, tradingPairId, 0.001, 10, 0.001, 0.1, 5, true, 0, 6, 0.80, 1.80, 0.50]
+      (name, account_id, trading_pair_id, config, is_active) 
+      VALUES (?, ?, ?, ?, ?)`,
+      ['LBK_USDT_BOT', accountId, tradingPairId, JSON.stringify(config), true]
     );
 
     // console.log('LBK_USDT 交易对机器人初始化完成');

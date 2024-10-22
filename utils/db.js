@@ -74,17 +74,8 @@ async function initDatabase() {
       name VARCHAR(50) NOT NULL UNIQUE COMMENT '机器人名称',
       account_id INT NOT NULL COMMENT '关联的交易所账户ID',
       trading_pair_id INT NOT NULL COMMENT '关联的交易对ID',
-      base_spread DECIMAL(5,4) NOT NULL COMMENT '基础价差',
-      base_order_size DECIMAL(18,8) NOT NULL COMMENT '基础订单大小',
-      min_profit DECIMAL(5,4) NOT NULL COMMENT '最小利润',
-      max_position DECIMAL(18,8) NOT NULL COMMENT '最大持仓量',
-      order_levels INT NOT NULL DEFAULT 5 COMMENT '订单档位数量',
+      config JSON NOT NULL COMMENT '机器人配置',
       is_active BOOLEAN DEFAULT TRUE COMMENT '是否激活',
-      amount_precision INT NOT NULL DEFAULT 8 COMMENT '数量精度',
-      price_precision INT NOT NULL DEFAULT 8 COMMENT '价格精度',
-      min_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00 COMMENT '最小乘数',
-      max_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00 COMMENT '最大乘数',
-      spread_increment DECIMAL(3,2) NOT NULL DEFAULT 0.50 COMMENT '价差增量',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
@@ -177,26 +168,24 @@ async function getActiveBots() {
 
 async function getBotById(botId) {
   const [rows] = await pool.query(`
-    SELECT b.*, a.api_key, a.api_secret, a.rest_api_url, t.pair
+    SELECT b.*, a.api_key, a.api_secret, a.rest_api_url, t.pair, b.config
     FROM market_maker_bots b
     JOIN exchange_accounts a ON b.account_id = a.id
     JOIN trading_pairs t ON b.trading_pair_id = t.id
     WHERE b.id = ?
   `, [botId]);
+  if (rows[0]) {
+    rows[0].config = JSON.parse(rows[0].config);
+  }
   return rows[0];
 }
 
 async function updateBotConfig(botId, config) {
   await pool.query(`
     UPDATE market_maker_bots
-    SET base_spread = ?,
-        base_order_size = ?,
-        min_profit = ?,
-        max_position = ?,
-        order_levels = ?,
-        is_active = ?
+    SET config = ?
     WHERE id = ?
-  `, [config.base_spread, config.base_order_size, config.min_profit, config.max_position, config.order_levels, config.is_active, botId]);
+  `, [JSON.stringify(config), botId]);
 }
 
 async function updateOrderStatus(orderId, status, filledAmount = null, averagePrice = null) {
