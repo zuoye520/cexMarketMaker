@@ -1,6 +1,5 @@
-import { createClient } from 'redis';
-import dotenv from 'dotenv';
-
+const {createClient} = require('redis');
+const dotenv = require('dotenv');
 dotenv.config();
 
 class RedisManager {
@@ -87,4 +86,4 @@ class RedisManager {
 
 const redisManager = new RedisManager();
 
-export default redisManager;
+module.exports =  redisManager

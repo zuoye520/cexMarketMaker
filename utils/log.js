@@ -1,6 +1,5 @@
-import util from 'util';
-import moment from 'moment';
-
+const util = require('util');
+const moment = require('moment');
 function info(){
     const param = [];
     for(var i=0;i<arguments.length;i++){
@@ -30,7 +29,7 @@ function error(){
 
 
 // 默认导出一个对象
-export default {
+module.exports =  {
     info,
     debug,
     error

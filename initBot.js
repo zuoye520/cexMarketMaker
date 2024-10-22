@@ -8,8 +8,8 @@ async function initLBKUSDTBot() {
 
     // 插入交易所账户
     const [accountResult] = await db.pool.query(
-      'INSERT INTO exchange_accounts (name, api_key, api_secret, rest_api_url) VALUES (?, ?, ?, ?)',
-      ['lbank', '1', '1', 'http://103.153.101.112:1173']
+      'INSERT INTO exchange_accounts (name, api_key, api_secret, rest_api_url,memo) VALUES (?, ?, ?, ?, ?)',
+      ['lbank', '1', '1', 'http://103.153.101.112:1173','']
     );
     const accountId = accountResult.insertId;
 

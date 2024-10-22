@@ -7,8 +7,8 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 100,
-  queueLimit: 100
+  connectionLimit: 200,
+  queueLimit: 200
 });
 
 async function tableExists(tableName) {
@@ -55,6 +55,7 @@ async function initDatabase() {
       api_key VARCHAR(100) NOT NULL COMMENT 'API密钥',
       api_secret VARCHAR(100) NOT NULL COMMENT 'API密钥',
       rest_api_url VARCHAR(255) NOT NULL COMMENT 'REST API URL',
+      meme VARCHAR(255) NULL COMMENT '备注',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
     ) COMMENT '交易所账户表'
   `);

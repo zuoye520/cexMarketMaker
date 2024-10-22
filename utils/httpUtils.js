@@ -1,4 +1,4 @@
-import axios from 'axios';
+const axios = require('axios');
 
 /**
  * 发送 HTTP 请求
@@ -27,4 +27,4 @@ async function sendRequest(url, config) {
   }
 }
 
-export { sendRequest };
+module.exports = { sendRequest }
