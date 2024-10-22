@@ -56,7 +56,8 @@ async function initDatabase() {
       api_secret VARCHAR(100) NOT NULL COMMENT 'API密钥',
       rest_api_url VARCHAR(255) NOT NULL COMMENT 'REST API URL',
       meme VARCHAR(255) NULL COMMENT '备注',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
     ) COMMENT '交易所账户表'
   `);
 
@@ -65,6 +66,7 @@ async function initDatabase() {
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT '交易对ID',
       pair VARCHAR(20) NOT NULL UNIQUE COMMENT '交易对名称',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
     ) COMMENT '交易对表'
   `);
 
@@ -77,6 +79,7 @@ async function initDatabase() {
       config JSON NOT NULL COMMENT '机器人配置',
       is_active BOOLEAN DEFAULT TRUE COMMENT '是否激活',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
       FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
     ) COMMENT '做市商机器人表'
@@ -87,8 +90,8 @@ async function initDatabase() {
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
       bot_id INT NOT NULL COMMENT '关联的机器人ID',
       side ENUM('buy', 'sell') NOT NULL COMMENT '订单方向',
-      price DECIMAL(18, 8) NOT NULL COMMENT '订单价格',
-      amount DECIMAL(18, 8) NOT NULL COMMENT '订单数量',
+      price DECIMAL(36, 18) NOT NULL COMMENT '订单价格',
+      amount DECIMAL(36, 18) NOT NULL COMMENT '订单数量',
       status ENUM('open', 'filled', 'cancelled') NOT NULL COMMENT '订单状态',
       exchange_order_id VARCHAR(100) NOT NULL COMMENT '交易所订单ID',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -101,8 +104,8 @@ async function initDatabase() {
     CREATE TABLE market_prices (
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT '市场价格ID',
       trading_pair_id INT NOT NULL COMMENT '关联的交易对ID',
-      price DECIMAL(18, 8) NOT NULL COMMENT '市场价格',
-      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '记录时间',
+      price DECIMAL(36, 18) NOT NULL COMMENT '市场价格',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
     ) COMMENT '市场价格表'
   `);
