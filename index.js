@@ -1,7 +1,6 @@
 const orderBook = require('./orderBook.js');
 const log = require('./utils/log.js');
 require('dotenv').config();
-dotenv.config();
 /**
  * 启动做市商程序
  */

@@ -2,8 +2,6 @@ const db = require('./utils/db.js');
 const RedisManager = require('./utils/redisManager.js');
 const ExchangeAPI = require('./api/exchangeApi.js');
 const log = require('./utils/log.js');
-require('dotenv').config();
-dotenv.config();
 
 /**
  * 计算动态价差
@@ -88,7 +86,7 @@ async function checkAndUpdateOrderStatus(bot, exchangeAPI) {
   const openOrders = await db.getOpenOrders(bot.id);
   for (const order of openOrders) {
     try {
-      const {statusStr,origQty,price} = await exchangeAPI.checkOrderInfo(bot.pair, order.exchange_order_id);
+      const {statusStr,origQty,price} = await exchangeAPI.orderInfo(bot.pair, order.exchange_order_id);
       if (statusStr !== 'open') {
         if (statusStr === 'filled') {
           await db.updateOrderStatus(order.id, statusStr, origQty, price);
@@ -121,7 +119,7 @@ async function updateSideOrders(bot, exchangeAPI, side, levels, openOrders) {
   for (const level of levels) {
     //查找现有的未成交订单中是否有与当前价格水平相近的订单
     const existingOrder = openOrders.find(o => o.side === side && Math.abs(o.price - level.price) / level.price < minProfit);
-    log.info('existingOrder:',existingOrder)
+    // log.info('existingOrder:',existingOrder)
     if (existingOrder) {
       log.info('存在当前价格水平相近的订单')
       const threshold = (maxMultiplier - minMultiplier) / 2; // 在这个例子中是 (1.5 - 0.8) / 2 = 0.35
@@ -136,19 +134,19 @@ async function updateSideOrders(bot, exchangeAPI, side, levels, openOrders) {
         }
         await exchangeAPI.cancelOrder(bot.pair, existingOrder.exchange_order_id);
         await db.closeOrder(existingOrder.id);
-        const newOrder = await exchangeAPI.placeOrder(bot.pair, side, level.price, level.amount);
-        await db.insertOrder(bot.id, side, level.price, level.amount, newOrder.order_id);
+        const newOrder = await exchangeAPI.order(bot.pair, side, level.price, level.amount);
+        await db.insertOrder(bot.id, side, level.price, level.amount, newOrder.orderId);
       }
     } else {
       log.info('不存在当前价格水平相近的订单')
-      const newOrder = await exchangeAPI.placeOrder(bot.pair, side, level.price, level.amount);
-      await db.insertOrder(bot.id, side, level.price, level.amount, newOrder.order_id);
+      const newOrder = await exchangeAPI.order(bot.pair, side, level.price, level.amount);
+      await db.insertOrder(bot.id, side, level.price, level.amount, newOrder.orderId);
     }
   }
 
   // 取消不在新的价格水平上的订单
   for (const order of openOrders.filter(o => o.side === side)) {
-    if (!levels.some(l => Math.abs(l.price - order.price) / order.price < bot.min_profit)) {
+    if (!levels.some(l => Math.abs(l.price - order.price) / order.price < minProfit)) {
       log.info('取消不在新的价格水平上的订单',bot.pair,order.exchange_order_id)
       await exchangeAPI.cancelOrder(bot.pair, order.exchange_order_id);
       await db.closeOrder(order.id);
@@ -162,9 +160,9 @@ async function updateSideOrders(bot, exchangeAPI, side, levels, openOrders) {
  * @param {ExchangeAPI} exchangeAPI - 交易所API实例
  */
 async function updateOrders(bot, exchangeAPI) {
-    const marketPrice = await exchangeAPI.fetchDepth(bot.pair);
+    const marketPrice = await exchangeAPI.depth(bot.pair);
     if (!marketPrice) return;
-
+    log.info('marketPrice:',marketPrice)
     // 首先检查和更新订单状态
     await checkAndUpdateOrderStatus(bot, exchangeAPI);
 

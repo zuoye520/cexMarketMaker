@@ -1,80 +1,110 @@
 const API = require('z_gwapi');
-
+const log = require('../utils/log.js');
 class ExchangeAPI {
   constructor(config) {
+    this.config = config;
     this.api = new API(config);
   }
 
-  async fetchDepth(pair) {
+  async ticker(pair) {
+    try {
+      const result = await this.api.ticker({
+        symbol:pair
+      });
+      return result;
+    } catch (error) {
+      log.error('获取交易对行情数据失败:', error);
+      throw error;
+    }
+  }
+  async depth(pair) {
     try {
       const result = await this.api.depth({
 				symbol:pair
 			});
-      console.log('fetchDepth:',result)
+      log.info('depth:',result)
       const tickerPrice = (result.asks[0][0]*1 + result.bids[0][0]*1)/2
       return tickerPrice;
     } catch (error) {
-      console.error('获取行情数据失败:', error);
+      log.error('获取交易对深度数据失败:', error);
       throw error;
     }
   }
 
-  async placeOrder(pair, side, price, amount) {
+  async order(pair, side, price, amount, type = 'LIMIT') {
     try {
-      return await this.api.order({
+      const result = await this.api.order({
         size: amount,
         price:price,
         symbol:pair,
         side: side,
-        type: "LIMIT"
+        type: type
         });
+      return result;
     } catch (error) {
-      console.error('下单失败:', error);
+      log.error('下单失败:', error);
+      throw error;
+    }
+  }
+  async batchOrders(orders) {
+    try {
+      const result = await this.api.batch_orders({
+        orders
+      });
+      return result;
+    } catch (error) {
+      log.error('批量下单失败:', error);
       throw error;
     }
   }
 
   async cancelOrder(pair, orderId) {
     try {
-      return await this.api.cancel_order({
-        order_id:orderId, 
-        symbol:pair
+      const result = await this.api.cancel_order({
+        symbol:pair,
+        order_id:orderId
       });
+      return result;
     } catch (error) {
-      console.error('取消订单失败:', error);
+      log.error('取消订单失败:', error);
       throw error;
     }
   }
 
   /**
-   * 订单状态 -1：已撤销 0：未成交 1： 部分成交 2：完全成交 3：部分成交已撤销 4：撤单处理中
+   * 订单状态 - 返回数据以MEXC为标准
+   *  NEW 未成交
+   *  FILLED 已成交
+   *  PARTIALLY_FILLED 部分成交
+   *  CANCELED 已撤销
+   *  PARTIALLY_CANCELED 部分撤销
    * @param {*} pair 
    * @param {*} orderId 
    * @returns 
    */
-  async checkOrderInfo(pair, orderId) {
+  async orderInfo(pair, orderId) {
     try {
-      const order = await this.api.order_info({
+      const result = await this.api.order_info({
+        symbol:pair,
         order_id:orderId, 
-        symbol:pair
       });
-      switch (order.status) {
-        case -1:
-          order.statusStr = 'cancelled'
+      switch (result.status) {
+        case 'CANCELED':
+          result.statusStr = 'cancelled'
           break;
-        case 2:
-          order.statusStr = 'filled'
+        case 'FILLED':
+          result.statusStr = 'filled'
           break;  
-        case 3:
-          order.statusStr = 'cancelled'
+        case 'PARTIALLY_CANCELED':
+          result.statusStr = 'cancelled'
           break;     
         default:
-          order.statusStr = 'open'
+          result.statusStr = 'open'
           break;
       }
-      return order;
+      return result;
     } catch (error) {
-      console.error('检查订单状态失败:', error);
+      log.error('查询订单信息失败:', error);
       throw error;
     }
   }

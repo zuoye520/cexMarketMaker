@@ -55,9 +55,9 @@ async function initDatabase() {
       api_key VARCHAR(100) NOT NULL COMMENT 'API密钥',
       api_secret VARCHAR(100) NOT NULL COMMENT 'API密钥',
       rest_api_url VARCHAR(255) NOT NULL COMMENT 'REST API URL',
-      meme VARCHAR(255) NULL COMMENT '备注',
+      memo VARCHAR(255) NULL COMMENT '备注',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     ) COMMENT '交易所账户表'
   `);
 
@@ -65,7 +65,7 @@ async function initDatabase() {
     CREATE TABLE trading_pairs (
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT '交易对ID',
       pair VARCHAR(20) NOT NULL UNIQUE COMMENT '交易对名称',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
     ) COMMENT '交易对表'
   `);
@@ -78,8 +78,9 @@ async function initDatabase() {
       trading_pair_id INT NOT NULL COMMENT '关联的交易对ID',
       config JSON NOT NULL COMMENT '机器人配置',
       is_active BOOLEAN DEFAULT TRUE COMMENT '是否激活',
+      memo VARCHAR(255) NULL COMMENT '备注',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
       FOREIGN KEY (account_id) REFERENCES exchange_accounts(id),
       FOREIGN KEY (trading_pair_id) REFERENCES trading_pairs(id)
     ) COMMENT '做市商机器人表'
@@ -90,8 +91,10 @@ async function initDatabase() {
       id INT AUTO_INCREMENT PRIMARY KEY COMMENT '订单ID',
       bot_id INT NOT NULL COMMENT '关联的机器人ID',
       side ENUM('buy', 'sell') NOT NULL COMMENT '订单方向',
+      type VARCHAR(32) DEFAULT 'LIMIT' COMMENT '订单方向',
       price DECIMAL(36, 18) NOT NULL COMMENT '订单价格',
       amount DECIMAL(36, 18) NOT NULL COMMENT '订单数量',
+      quote_amount DECIMAL(36, 18) NOT NULL COMMENT '报价数量',
       status ENUM('open', 'filled', 'cancelled') NOT NULL COMMENT '订单状态',
       exchange_order_id VARCHAR(100) NOT NULL COMMENT '交易所订单ID',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -145,7 +148,7 @@ async function insertOrder(botId, side, price, amount, exchangeOrderId) {
 
 async function getRecentPrices(tradingPairId, limit = 10) {
   const [rows] = await pool.query(
-    'SELECT price FROM market_prices WHERE trading_pair_id = ? ORDER BY timestamp DESC LIMIT ?',
+    'SELECT price FROM market_prices WHERE trading_pair_id = ? ORDER BY created_at DESC LIMIT ?',
     [tradingPairId, limit]
   );
   return rows;

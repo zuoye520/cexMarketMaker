@@ -1,8 +1,6 @@
 const {sendRequest} = require('./httpUtils.js');
 const moment = require('moment');
-const dotenv = require('dotenv');
-
-dotenv.config();
+require('dotenv').config();
 
 // 从环境变量中获取 Telegram Bot Token 和 Chat IDs
 const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
